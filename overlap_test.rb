@@ -14,62 +14,6 @@ def overlaps?(wp1, wp2)
   end
 end
 
-def process_map(overlap_map)
-  new_map = Hash.new
-  overlap_map.each_key do |key|
-    res = merge_map(overlap_map, key)
-    #print "setting new value of #{key} to #{res}\n"
-    new_map[key] = res
-  end
-  res = new_map.sort {|a, b| a[1].size <=> b[1].size}
-  to_remove = []
-  res = res.reverse.select do |x|
-    if to_remove.include? x[0]
-      false
-    else
-      to_remove.concat(x[1].select {|y| y != x[0]})
-      true
-    end
-  end
-  res
-end
-
-def merge_map(overlap_map, key)
-  if not overlap_map.has_key? key
-    print "Seems like this key is missing:\n"
-    p key
-    print "Overlap map:\n"
-    overlap_map.each_key {|x| p x["id"]} 
-  end
-  if overlap_map[key].size == 0
-    return [key]
-  else
-    res = overlap_map[key].map {|x| merge_map(overlap_map, x)}
-    res << key
-    res.flatten
-  end
-end
-
-def merge_periods(periods)
-  early_start = nil
-  late_end = nil
-  comments = []
-  periods.each do |x|
-    early_start = x["start"] if early_start.nil?
-    late_end = x["end"] if late_end.nil?
-
-    comments << x["comment"]
-    early_start = x["start"] if x["start"] < early_start
-    late_end = x["end"] if x["end"] > late_end
-  end
-  c = comments.flatten.uniq.join(",")
-  {"start" => early_start, "end" => late_end,
-   "worklog_task_id" => periods[0]["worklog_task_id"],
-   "user_id" => periods[0]["user_id"],
-   "comment" => c
-  }
-end
-
 User.find(:all).each do |u|
   print "\nSearching for matches for user #{u.alias}\n"
   wps = WorkPeriod.find(:all, :conditions => ["user_id = ?", u.id])
