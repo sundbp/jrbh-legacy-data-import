@@ -1,22 +1,24 @@
 
 WorkPeriodStruct = Struct.new(:start,:end,:user,:task,:comment)
 
-o1 = nil
-o2 = nil
-File.open("worklog-v1-data/worklog1.dump") do |f|
-  o1 = Marshal.load(f)
+dumps = []
+Dir['*/*.dump'].each do |fname|
+  print "adding #{fname}:\n"
+  File.open(fname) do |f|
+    dumps << Marshal.load(f)
+  end
 end
 
-File.open("worklog-v2-data/worklog2.dump") do |f|
-  o2 = Marshal.load(f)
+dumps.each do |o|
+  o.sort! do |a,b| a.start <=> b.start end
+  print "Range of data is: " + o[0].start.to_s + " - " + o[-1].end.to_s + "\n"
 end
 
-o1.sort! do |a,b| a.start <=> b.start end
-o2.sort! do |a,b| a.start <=> b.start end
-print "Range of data is: " + o1[0].start.to_s + " - " + o1[-1].end.to_s + "\n"
-print "Range of data is: " + o2[0].start.to_s + " - " + o2[-1].end.to_s + "\n"
-
-data = o1.concat(o2)
+data = dumps.first
+dumps.each do |o|
+  next if data == o 
+  data = data.concat(o)
+end
 data.sort! do |a,b| a.start <=> b.start end
 
 print "We have " + data.size.to_s + " records of data\n"
@@ -37,7 +39,7 @@ data.each do |x|
 
 end
 
-File.open('worklog_total.dump', "w+" ) do |f|
+File.open(ARGV[0], "w+" ) do |f|
   Marshal.dump(data, f)
 end
 

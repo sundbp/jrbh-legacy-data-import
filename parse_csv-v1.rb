@@ -3,7 +3,7 @@ require 'activesupport'
 
 WorkPeriodStruct = Struct.new(:start,:end,:user,:task,:comment)
 
-relative_path = "./output/"
+relative_path = File.join(ARGV[0],"output")
 
 parsed_data = []
 
@@ -24,7 +24,7 @@ Dir.new(relative_path).each do |fname|
   ends = []
   tasks = [] 
   comments = []
-  File.new(relative_path+fname).each_line do |line|
+  File.new(File.join(relative_path, fname)).each_line do |line|
     parts = line.split(',')
     if found_week_start 
       if skip_1 > 0
@@ -72,14 +72,16 @@ Dir.new(relative_path).each do |fname|
       #starts.each {|x| p x.to_s }
       #p "ends"
       #ends.each {|x| p x.to_s }
-        
+      
+      separators = ["1", "0.5"]
       # create a WorkPeriod object
       (1..parts.size-1).each do |d|
-        if parts[d] == "0.5"
+        if separators.include? parts[d]
+          separator = parts[d]
           tasks << parts[d-1].gsub('"', "")
           comment_parts = [];
           x = d-2;
-          while parts[x] != "0.5" and not parts[x].match(/\d+.\d+-\d+.\d+/)
+          while parts[x] != separator and not parts[x].match(/\d+.\d+-\d+.\d+/)
             comment_parts << parts[x].gsub('"', "")
             x = x-1
           end
@@ -103,12 +105,12 @@ Dir.new(relative_path).each do |fname|
       d = nil
       if matchdata
         date_strings << parts
-        if parts[0].match(/"WEEK COMMENCING - (\d\d.\d\d.\d\d)"/)
-          mdata = parts[0].match(/"WEEK COMMENCING - (\d\d.\d\d.\d\d)"/)
+        if parts[0].match(/"WEEK COMMENCING.*(\d\d.\d\d.\d\d)"/)
+          mdata = parts[0].match(/"WEEK COMMENCING.*(\d\d.\d\d.\d\d)"/)
           d = Date.strptime(mdata[1], '%d.%m.%y')
           all_dates << d 
-        elsif parts[0].match(/"WEEK COMMENCING - (\d\d.\d\d.\d\d\d\d)"/)
-          mdata = parts[0].match(/"WEEK COMMENCING - (\d\d.\d\d.\d\d\d\d)"/)
+        elsif parts[0].match(/"WEEK COMMENCING.*(\d\d.\d\d.\d\d\d\d)"/)
+          mdata = parts[0].match(/"WEEK COMMENCING.*(\d\d.\d\d.\d\d\d\d)"/)
           d = Date.strptime(mdata[1], '%d.%m.%Y')
           all_dates << d 
         elsif parts[2].match(/(\d\d\d\d-\d\d-\d\d)/)
@@ -131,6 +133,9 @@ Dir.new(relative_path).each do |fname|
             raise "Bad date!"
           end
           dates << a
+          #if a > Date.new(2009,3,1) and a < Date.new(2009,3,3)
+          #  print "Found one instance in #{fname} - '#{parts[0]}'!\n"
+          #end
         end
         found_week_start = true
       end
@@ -147,7 +152,9 @@ task_map = Hash[
   "admin" => "Admin",
   "JRBH review" => "JRBH Review",
   "P3 Universal" => "C-P3 Universal",
-  "New Client" => "Educor 2"
+  "New Client" => "Educor 2",
+  "pring Break" => "Spring Break",
+  "NBd" => "NBD"
 ]
 parsed_data.each do |x|
   if task_map.has_key? x.task
@@ -188,7 +195,7 @@ parsed_data.each do |x|
   end
 end
 parsed_data = tmp
-File.open('worklog1.dump', "w+" ) do |f|
+File.open(File.join(ARGV[0], ARGV[1]), "w+" ) do |f|
   Marshal.dump(parsed_data, f)
 end
 
