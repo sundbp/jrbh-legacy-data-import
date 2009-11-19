@@ -1,18 +1,20 @@
 #!/usr/bin/env /Users/patrik/RubymineProjects/jrbh-worklog/script/runner -e production
 
-USER = "JH"
-COMMIT = false 
-D_START = Date.new(2009,2,28)
-D_END = Date.new(2009,3,14)
+USER = "all-users"
+COMMIT = true 
+PRINT = false
+D_START = Date.new(2008,7,28)
+D_END = Date.new(2009,7,4)
 
-user = User.find_by_alias(USER)
-users = [user]
+users = if USER == "all-users"
+          User.find(:all)
+        else
+          [User.find_by_alias(USER)]
+        end
 
 users.each do |u|
   print "Attempting to flatten periods for user #{u.alias}\n"
-  wps = WorkPeriod.find(:all,
-                        :conditions => ["user_id = ? and start >= ? and work_periods.end <= ?",
-                                        u.id, D_START, D_END])
+  wps = WorkPeriod.user(u.alias).between(D_START, D_END)
 
   periods = wps.sort {|a,b| a.start <=> b.start}
   prev = nil
@@ -37,20 +39,20 @@ users.each do |u|
         comment = comment[0..254]
       end
       wltid = cumm.first.worklog_task_id
-      print "Flattened #{cumm.size} entries into one entry. These parts:\n"
+      print "Flattened #{cumm.size} entries into one entry. These parts:\n" if PRINT
       # remove old entries
       cumm.each do |x|
-        print "(#{x.start}-#{x.end}) #{x.worklog_task.name} - #{x.user.alias}\n"
+        print "(#{x.start}-#{x.end}) #{x.worklog_task.name} - #{x.user.alias}\n" if PRINT
         x.destroy if COMMIT
       end
-      print "..became this:\n"
+      print "..became this:\n" if PRINT
       # create new entry
       wp = WorkPeriod.create(:user_id => u.id,
                              :worklog_task_id => wltid,
                              :start => start_t,
                              :end => end_t,
                              :comment => comment) if COMMIT
-      print "(#{wp.start}-#{wp.end}) #{wp.worklog_task.name} - #{wp.user.alias}\n"
+      print "(#{start_t}-#{end_t}) #{WorklogTask.find(wltid).name} - #{u.alias}\n" if PRINT
 
       # reset chain info
       active_chain = false
@@ -69,25 +71,19 @@ users.each do |u|
       comment = comment[0..254]
     end
     wltid = cumm.first.worklog_task_id
-    print "Flattened #{cumm.size} entries into one entry. These parts:\n"
+    print "Flattened #{cumm.size} entries into one entry. These parts:\n" if PRINT
     # remove old entries
     cumm.each do |x|
-      print "(#{x.start}-#{x.end}) #{x.worklog_task.name} - #{x.user.alias}\n"
+      print "(#{x.start}-#{x.end}) #{x.worklog_task.name} - #{x.user.alias}\n" if PRINT
       x.destroy if COMMIT
     end
-    print "..became this:\n"
+    print "..became this:\n" if PRINT
     # create new entry
     wp = WorkPeriod.create(:user_id => u.id,
                            :worklog_task_id => wltid,
                            :start => start_t,
                            :end => end_t,
                            :comment => comment) if COMMIT
-    # create new entry
-    WorkPeriod.create(:user_id => u.id,
-                      :worklog_task_id => cumm.first.worklog_task_id,
-                      :start => start_t,
-                      :end => end_t,
-                      :comment => comment) if COMMIT
-    print "(#{wp.start}-#{wp.end}) #{wp.worklog_task.name} - #{wp.user.alias}\n"
+    print "(#{start_t}-#{end_t}) #{WorklogTask.find(wltid).name} - #{u.alias}\n" if PRINT
   end
 end

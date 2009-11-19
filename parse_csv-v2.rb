@@ -2,7 +2,7 @@ require 'rubygems'
 
 WorkPeriodStruct = Struct.new(:start,:end,:user,:task,:comment)
 
-relative_path = "./output/"
+relative_path = File.join(ARGV[0],"output")
 
 parsed_data = []
 
@@ -21,7 +21,7 @@ Dir.new(relative_path).each do |fname|
   ends = []
   tasks = [] 
   comments = []
-  File.new(relative_path+fname).each_line do |line|
+  File.new(File.join(relative_path, fname)).each_line do |line|
     parts = line.split(',')
     if found_week_start 
       unless has_dates
@@ -77,13 +77,14 @@ Dir.new(relative_path).each do |fname|
         #p "ends"
         #ends.each {|x| p x.to_s }
         
+        separator = "1"
         # create a WorkPeriod object
         (1..parts.size-1).each do |d|
-          if parts[d] == "0.5"
+          if parts[d] == separator
             tasks << parts[d-1].gsub('"', "")
             comment_parts = [];
             x = d-2;
-            while parts[x] != "0.5" and not parts[x].match(/\d+.\d+-\d+.\d+/)
+            while parts[x] != separator and not parts[x].match(/\d+.\d+-\d+.\d+/)
               comment_parts << parts[x].gsub('"', "")
               x = x-1
             end
@@ -150,6 +151,6 @@ comments.each do |x|
 #  print x.to_s + "\n"
 end
 
-File.open('worklog2.dump', "w+" ) do |f|
+File.open(File.join(ARGV[0], ARGV[1]), "w+" ) do |f|
   Marshal.dump(parsed_data, f)
 end
